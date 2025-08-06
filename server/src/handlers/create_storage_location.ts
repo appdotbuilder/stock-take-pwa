@@ -1,15 +1,24 @@
 
+import { db } from '../db';
+import { storageLocationsTable } from '../db/schema';
 import { type CreateStorageLocationInput, type StorageLocation } from '../schema';
 
-export async function createStorageLocation(input: CreateStorageLocationInput): Promise<StorageLocation> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new storage location and persisting it in the database.
-    // Should validate that location_code is unique
-    return Promise.resolve({
-        id: 1,
+export const createStorageLocation = async (input: CreateStorageLocationInput): Promise<StorageLocation> => {
+  try {
+    // Insert storage location record
+    const result = await db.insert(storageLocationsTable)
+      .values({
         location_code: input.location_code,
         location_name: input.location_name,
-        qr_code: input.qr_code || null,
-        created_at: new Date()
-    } as StorageLocation);
-}
+        qr_code: input.qr_code
+      })
+      .returning()
+      .execute();
+
+    // Return the created storage location
+    return result[0];
+  } catch (error) {
+    console.error('Storage location creation failed:', error);
+    throw error;
+  }
+};

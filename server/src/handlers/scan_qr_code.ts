@@ -1,9 +1,23 @@
 
+import { db } from '../db';
+import { storageLocationsTable } from '../db/schema';
+import { eq } from 'drizzle-orm';
 import { type QRCodeScanInput, type StorageLocation } from '../schema';
 
 export async function scanQRCode(input: QRCodeScanInput): Promise<StorageLocation | null> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is finding storage location by QR code.
-    // Should return storage location details if QR code exists, null otherwise
-    return Promise.resolve(null);
+  try {
+    const result = await db.select()
+      .from(storageLocationsTable)
+      .where(eq(storageLocationsTable.qr_code, input.qr_code))
+      .execute();
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    return result[0];
+  } catch (error) {
+    console.error('QR code scan failed:', error);
+    throw error;
+  }
 }

@@ -1,8 +1,19 @@
 
+import { db } from '../db';
+import { projectsTable } from '../db/schema';
+import { eq } from 'drizzle-orm';
 import { type Project } from '../schema';
 
-export async function getProjects(): Promise<Project[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all active projects from the database.
-    return [];
-}
+export const getProjects = async (): Promise<Project[]> => {
+  try {
+    const results = await db.select()
+      .from(projectsTable)
+      .where(eq(projectsTable.is_active, true))
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch projects:', error);
+    throw error;
+  }
+};

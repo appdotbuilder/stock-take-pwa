@@ -1,8 +1,24 @@
 
+import { db } from '../db';
+import { stockTakingSessionsTable } from '../db/schema';
 import { type StockTakingSession } from '../schema';
+import { eq, and } from 'drizzle-orm';
 
-export async function getActiveSessions(userId: number): Promise<StockTakingSession[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all active stock taking sessions for a specific user.
-    return [];
-}
+export const getActiveSessions = async (userId: number): Promise<StockTakingSession[]> => {
+  try {
+    const results = await db.select()
+      .from(stockTakingSessionsTable)
+      .where(
+        and(
+          eq(stockTakingSessionsTable.user_id, userId),
+          eq(stockTakingSessionsTable.status, 'ACTIVE')
+        )
+      )
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch active sessions:', error);
+    throw error;
+  }
+};

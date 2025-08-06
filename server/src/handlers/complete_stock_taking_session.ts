@@ -1,18 +1,28 @@
 
+import { db } from '../db';
+import { stockTakingSessionsTable } from '../db/schema';
 import { type StockTakingSession } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function completeStockTakingSession(sessionId: number): Promise<StockTakingSession> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is marking a stock taking session as completed.
-    // Should update session status to 'COMPLETED' and set completed_at timestamp
-    return Promise.resolve({
-        id: sessionId,
-        user_id: 1,
-        project_id: 1,
-        session_name: '',
-        status: 'COMPLETED' as const,
-        started_at: new Date(),
-        completed_at: new Date(),
-        created_at: new Date()
-    } as StockTakingSession);
-}
+export const completeStockTakingSession = async (sessionId: number): Promise<StockTakingSession> => {
+  try {
+    // Update session status to COMPLETED and set completed_at timestamp
+    const result = await db.update(stockTakingSessionsTable)
+      .set({
+        status: 'COMPLETED',
+        completed_at: new Date()
+      })
+      .where(eq(stockTakingSessionsTable.id, sessionId))
+      .returning()
+      .execute();
+
+    if (result.length === 0) {
+      throw new Error(`Stock taking session with id ${sessionId} not found`);
+    }
+
+    return result[0];
+  } catch (error) {
+    console.error('Complete stock taking session failed:', error);
+    throw error;
+  }
+};

@@ -1,19 +1,45 @@
 
+import { db } from '../db';
+import { stockTakingRecordsTable, partsTable } from '../db/schema';
 import { type CreateStockTakingRecordInput, type StockTakingRecord } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function recordStockCount(input: CreateStockTakingRecordInput): Promise<StockTakingRecord> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is recording stock count for a part during stock taking session.
-    // Should calculate qty_difference (qty_counted - qty_std from parts table)
-    // Should update part's qty_sisa field
-    return Promise.resolve({
-        id: 1,
+export const recordStockCount = async (input: CreateStockTakingRecordInput): Promise<StockTakingRecord> => {
+  try {
+    // Get the current part data to calculate difference
+    const parts = await db.select()
+      .from(partsTable)
+      .where(eq(partsTable.id, input.part_id))
+      .execute();
+
+    if (parts.length === 0) {
+      throw new Error(`Part with id ${input.part_id} not found`);
+    }
+
+    const part = parts[0];
+    const qtyDifference = input.qty_counted - part.qty_std;
+
+    // Insert stock taking record
+    const result = await db.insert(stockTakingRecordsTable)
+      .values({
         session_id: input.session_id,
         part_id: input.part_id,
         qty_counted: input.qty_counted,
-        qty_difference: 0, // Should calculate: qty_counted - part.qty_std
-        remark: input.remark || null,
-        recorded_at: new Date(),
-        created_at: new Date()
-    } as StockTakingRecord);
-}
+        qty_difference: qtyDifference,
+        remark: input.remark
+      })
+      .returning()
+      .execute();
+
+    // Update part's qty_sisa field
+    await db.update(partsTable)
+      .set({ qty_sisa: input.qty_counted })
+      .where(eq(partsTable.id, input.part_id))
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Stock count recording failed:', error);
+    throw error;
+  }
+};
